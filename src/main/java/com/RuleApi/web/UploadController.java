@@ -23,11 +23,13 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.util.*;
+import java.util.List;
 
 /**
  * 文件上传控制器
@@ -151,14 +153,14 @@ public class UploadController {
             long filesMax = uploadFilesMax * 1024 * 1024;
             if (file.getSize() > filesMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"文件大小不能超过"+filesMax+"M",null);
+                return Result.getResultJson(0,"文件大小不能超过"+uploadFilesMax+"M",null);
             }
         }
         if(flieUploadType.equals(1)){
             long picMax = uploadPicMax * 1024 * 1024;
             if (file.getSize() > picMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"图片大小不能超过"+picMax+"M",null);
+                return Result.getResultJson(0,"图片大小不能超过"+uploadPicMax+"M",null);
             }
         }
 
@@ -166,7 +168,7 @@ public class UploadController {
             long mediaMax = uploadMediaMax * 1024 * 1024;
             if (file.getSize() > mediaMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"媒体大小不能超过"+mediaMax+"M",null);
+                return Result.getResultJson(0,"媒体大小不能超过"+uploadMediaMax+"M",null);
             }
         }
         //如果为图片，则开始内容检测
@@ -193,9 +195,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
         //验证上传大小结束
@@ -331,14 +338,14 @@ public class UploadController {
             long filesMax = uploadFilesMax * 1024 * 1024;
             if (file.getSize() > filesMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"文件大小不能超过"+filesMax+"M",null);
+                return Result.getResultJson(0,"文件大小不能超过"+uploadFilesMax+"M",null);
             }
         }
         if(flieUploadType.equals(1)){
             long picMax = uploadPicMax * 1024 * 1024;
             if (file.getSize() > picMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"图片大小不能超过"+picMax+"M",null);
+                return Result.getResultJson(0,"图片大小不能超过"+uploadPicMax+"M",null);
             }
         }
 
@@ -346,7 +353,7 @@ public class UploadController {
             long mediaMax = uploadMediaMax * 1024 * 1024;
             if (file.getSize() > mediaMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"媒体大小不能超过"+mediaMax+"M",null);
+                return Result.getResultJson(0,"媒体大小不能超过"+uploadMediaMax+"M",null);
             }
         }
 
@@ -379,9 +386,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
 
@@ -506,14 +518,14 @@ public class UploadController {
             long filesMax = uploadFilesMax * 1024 * 1024;
             if (file.getSize() > filesMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"文件大小不能超过"+filesMax+"M",null);
+                return Result.getResultJson(0,"文件大小不能超过"+uploadFilesMax+"M",null);
             }
         }
         if(flieUploadType.equals(1)){
             long picMax = uploadPicMax * 1024 * 1024;
             if (file.getSize() > picMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"图片大小不能超过"+picMax+"M",null);
+                return Result.getResultJson(0,"图片大小不能超过"+uploadPicMax+"M",null);
             }
         }
 
@@ -521,7 +533,7 @@ public class UploadController {
             long mediaMax = uploadMediaMax * 1024 * 1024;
             if (file.getSize() > mediaMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"媒体大小不能超过"+mediaMax+"M",null);
+                return Result.getResultJson(0,"媒体大小不能超过"+uploadMediaMax+"M",null);
             }
         }
 
@@ -553,9 +565,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
 
@@ -665,14 +682,14 @@ public class UploadController {
             long filesMax = uploadFilesMax * 1024 * 1024;
             if (file.getSize() > filesMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"文件大小不能超过"+filesMax+"M",null);
+                return Result.getResultJson(0,"文件大小不能超过"+uploadFilesMax+"M",null);
             }
         }
         if(flieUploadType.equals(1)){
             long picMax = uploadPicMax * 1024 * 1024;
             if (file.getSize() > picMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"图片大小不能超过"+picMax+"M",null);
+                return Result.getResultJson(0,"图片大小不能超过"+uploadPicMax+"M",null);
             }
         }
 
@@ -680,7 +697,7 @@ public class UploadController {
             long mediaMax = uploadMediaMax * 1024 * 1024;
             if (file.getSize() > mediaMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"媒体大小不能超过"+mediaMax+"M",null);
+                return Result.getResultJson(0,"媒体大小不能超过"+uploadMediaMax+"M",null);
             }
         }
 
@@ -713,9 +730,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
 
@@ -824,14 +846,14 @@ public class UploadController {
             long filesMax = uploadFilesMax * 1024 * 1024;
             if (file.getSize() > filesMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"文件大小不能超过"+filesMax+"M",null);
+                return Result.getResultJson(0,"文件大小不能超过"+uploadFilesMax+"M",null);
             }
         }
         if(flieUploadType.equals(1)){
             long picMax = uploadPicMax * 1024 * 1024;
             if (file.getSize() > picMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"图片大小不能超过"+picMax+"M",null);
+                return Result.getResultJson(0,"图片大小不能超过"+uploadPicMax+"M",null);
             }
         }
 
@@ -839,7 +861,7 @@ public class UploadController {
             long mediaMax = uploadMediaMax * 1024 * 1024;
             if (file.getSize() > mediaMax) {
                 // 文件大小超过限制，返回错误消息或进行其他处理
-                return Result.getResultJson(0,"媒体大小不能超过"+mediaMax+"M",null);
+                return Result.getResultJson(0,"媒体大小不能超过"+uploadMediaMax+"M",null);
             }
         }
 
@@ -872,9 +894,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
 
@@ -1030,9 +1057,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
         String result = uploadService.ftpUpload(file,this.dataprefix,apiconfig,uid);
@@ -1189,9 +1221,14 @@ public class UploadController {
                 }
             }
             if(isCompression.equals(1)){
-                File compressedFile = compressImage(file, imageCompressionLv);
-                String contentType = file.getContentType();
-                file = convertFileToMultipartFile(compressedFile, contentType);
+                byte[] compressedBytes = compressImageToBytes(file, imageCompressionLv);
+
+                file = new MockMultipartFile(
+                        file.getName(),
+                        file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg",
+                        file.getContentType() != null ? file.getContentType() : "image/jpeg",
+                        compressedBytes
+                );
             }
         }
 
@@ -1235,13 +1272,16 @@ public class UploadController {
     @ResponseBody
     @LoginRequired(purview = "-1")
     public String fileList (@RequestParam(value = "searchParams", required = false) String  searchParams,
-                           @RequestParam(value = "searchKey"        , required = false, defaultValue = "") String searchKey,
-                           @RequestParam(value = "page"        , required = false, defaultValue = "1") Integer page,
-                           @RequestParam(value = "order"        , required = false, defaultValue = "created") String order,
-                           @RequestParam(value = "limit"       , required = false, defaultValue = "15") Integer limit) {
+                            @RequestParam(value = "searchKey"        , required = false, defaultValue = "") String searchKey,
+                            @RequestParam(value = "page"        , required = false, defaultValue = "1") Integer page,
+                            @RequestParam(value = "order"        , required = false, defaultValue = "created") String order,
+                            @RequestParam(value = "limit"       , required = false, defaultValue = "15") Integer limit) {
         List jsonList = new ArrayList();
         TypechoFiles query = new TypechoFiles();
         String sqlParams = "null";
+        if(!order.equals("created")&&!order.equals("id")&&!order.equals("size")){
+            order = "created";
+        }
         Integer total = 0;
         if (StringUtils.isNotBlank(searchParams)) {
             JSONObject object = JSON.parseObject(searchParams);
@@ -1544,6 +1584,31 @@ public class UploadController {
             return defaultWindowsPath.endsWith("/") ? defaultWindowsPath : (defaultWindowsPath + "/");
         } else {
             return defaultLinuxPath.endsWith("/") ? defaultLinuxPath : (defaultLinuxPath + "/");
+        }
+    }
+    public static byte[] compressImageToBytes(MultipartFile file, int maxWidth) throws IOException {
+        BufferedImage src = ImageIO.read(file.getInputStream());
+        if (src == null) {
+            throw new IOException("不是有效的图片");
+        }
+
+        int width = src.getWidth();
+        int height = src.getHeight();
+
+        if (width > maxWidth) {
+            int newHeight = (int) ((double) height * maxWidth / width);
+            Image tmp = src.getScaledInstance(maxWidth, newHeight, Image.SCALE_SMOOTH);
+            BufferedImage resized = new BufferedImage(maxWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+
+            Graphics2D g2d = resized.createGraphics();
+            g2d.drawImage(tmp, 0, 0, null);
+            g2d.dispose();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(resized, "jpg", baos);
+            return baos.toByteArray();
+        } else {
+            return file.getBytes(); // 不需要压缩，直接返回原图
         }
     }
 

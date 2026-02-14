@@ -102,6 +102,9 @@ public class CommentsController {
                                 @RequestParam(value = "token"       , required = false, defaultValue = "") String token) {
         TypechoComments query = new TypechoComments();
         String sqlParams = "null";
+        if(!order.equals("created")&&!order.equals("coid")&&!order.equals("cid")){
+            order = "created";
+        }
         //如果开启全局登录，则必须登录才能得到数据
         Integer uStatus = UStatus.getStatus(token,this.dataprefix,redisTemplate);
         Map apiconfig = UStatus.getConfig(this.dataprefix,allconfigService,redisTemplate);

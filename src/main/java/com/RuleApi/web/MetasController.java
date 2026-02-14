@@ -84,6 +84,9 @@ public class MetasController {
         if(limit>50){
             limit = 50;
         }
+        if(!order.equals("cid")&&!order.equals("created")&&!order.equals("modified")&&!order.equals("commentsNum")&&!order.equals("views")&&!order.equals("likes")&&!order.equals("replyTime")){
+            order = "created";
+        }
         String sqlParams = "null";
         Integer uStatus = UStatus.getStatus(token,this.dataprefix,redisTemplate);
         Integer uid = 0;
@@ -169,6 +172,9 @@ public class MetasController {
         String sqlParams = "null";
         if(limit>100){
             limit = 100;
+        }
+        if(!order.equals("count")&&!order.equals("order")&&!order.equals("mid")){
+            order = "order";
         }
         Integer total = 0;
         List jsonList = new ArrayList();

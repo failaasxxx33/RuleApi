@@ -938,13 +938,16 @@ public class ChatController {
     @ResponseBody
     @LoginRequired(purview = "0")
     public String allGroup (@RequestParam(value = "page"        , required = false, defaultValue = "1") Integer page,
-                            @RequestParam(value = "order", required = false, defaultValue = "created") String  order,
+                            @RequestParam(value = "order", required = false, defaultValue = "created") String order,
                             @RequestParam(value = "type", required = false, defaultValue = "1") Integer  type,
                             @RequestParam(value = "limit"       , required = false, defaultValue = "15") Integer limit,
                             @RequestParam(value = "searchKey"        , required = false, defaultValue = "") String searchKey,
                             @RequestParam(value = "token", required = false) String  token) {
         if(limit>50){
             limit = 50;
+        }
+        if(!order.equals("created")&&!order.equals("lastTime")&&!order.equals("id")){
+            order = "created";
         }
         TypechoChat query = new TypechoChat();
         query.setType(1);

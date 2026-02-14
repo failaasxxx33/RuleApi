@@ -1267,9 +1267,12 @@ public class ShopController {
                              @RequestParam(value = "page"        , required = false, defaultValue = "1") Integer page,
                              @RequestParam(value = "limit"       , required = false, defaultValue = "15") Integer limit,
                              @RequestParam(value = "searchKey"        , required = false, defaultValue = "") String searchKey,
-                             @RequestParam(value = "order"        , required = false, defaultValue = "") String order) {
+                             @RequestParam(value = "order"        , required = false, defaultValue = "created") String order) {
         TypechoShoptype query = new TypechoShoptype();
         String sqlParams = "null";
+        if(!order.equals("created")&&!order.equals("sellNum")&&!order.equals("price")&&!order.equals("id")&&!order.equals("num")){
+            order = "created";
+        }
         if(limit>100){
             limit = 100;
         }

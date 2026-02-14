@@ -326,12 +326,15 @@ public class ContentsController {
                                 @RequestParam(value = "page"        , required = false, defaultValue = "1") Integer page,
                                 @RequestParam(value = "limit"       , required = false, defaultValue = "15") Integer limit,
                                 @RequestParam(value = "searchKey"        , required = false, defaultValue = "") String searchKey,
-                                @RequestParam(value = "order"        , required = false, defaultValue = "") String order,
+                                @RequestParam(value = "order"        , required = false, defaultValue = "created") String order,
                                 @RequestParam(value = "random"        , required = false, defaultValue = "0") Integer random,
                                 @RequestParam(value = "token"        , required = false, defaultValue = "") String token){
         TypechoContents query = new TypechoContents();
         if(limit>50){
             limit = 50;
+        }
+        if(!order.equals("cid")&&!order.equals("created")&&!order.equals("modified")&&!order.equals("commentsNum")&&!order.equals("views")&&!order.equals("likes")&&!order.equals("replyTime")){
+            order = "created";
         }
         String sqlParams = "null";
         List cacheList = new ArrayList();

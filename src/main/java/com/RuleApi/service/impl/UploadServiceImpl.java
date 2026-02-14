@@ -44,6 +44,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDate;
 import java.util.*;
 @Service
 public class UploadServiceImpl  implements UploadService {
@@ -67,7 +68,7 @@ public class UploadServiceImpl  implements UploadService {
             int year = cal.get(Calendar.YEAR);
             int month = cal.get(Calendar.MONTH) + 1;
             int day = cal.get(Calendar.DATE);
-            
+
             if(apiconfig.get("uploadType").toString().equals("cos")){
                 COSCredentials cred = new BasicCOSCredentials(apiconfig.get("cosAccessKey").toString(), apiconfig.get("cosSecretKey").toString());
                 ClientConfig clientConfig = new ClientConfig(new Region(apiconfig.get("cosBucket").toString()));
@@ -133,7 +134,7 @@ public class UploadServiceImpl  implements UploadService {
                 try {
                     Files.copy(inputStream, file1.toPath(), StandardCopyOption.REPLACE_EXISTING);
                     Map<String,String> info =new HashMap<String, String>();
-                   // info.put("url",apiconfig.get("webinfoUploadUrl").toString()+"upload"+"/"+year+"/"+month+"/"+day+"/"+newFileName);
+                    // info.put("url",apiconfig.get("webinfoUploadUrl").toString()+"upload"+"/"+year+"/"+month+"/"+day+"/"+newFileName);
                     editFile.setLog("用户"+uid+"通过localUpload成功上传了图片");
                     //如果文件上传成功，则添加进文件表
                     TypechoFiles files = new TypechoFiles();
@@ -410,7 +411,7 @@ public class UploadServiceImpl  implements UploadService {
 
         //根据权限等级检查是否为图片
         Integer uploadLevel = Integer.parseInt(apiconfig.get("uploadLevel").toString());;
-        
+
         if(uploadLevel.equals(1)){
             return Result.getResultJson(0,"管理员已关闭上传功能",null);
         }
@@ -745,116 +746,117 @@ public class UploadServiceImpl  implements UploadService {
             return Result.getResultJson(1,"上传失败",null);
         }
     }
-    public String ftpUpload(MultipartFile file, String  dataprefix,Map apiconfig,Integer uid){
+    public String ftpUpload(MultipartFile file, String dataprefix, Map apiconfig, Integer uid) {
         FTPClient ftpClient = new FTPClient();
         try {
-
-            //指定存放上传文件的目录
-            ApplicationHome h = new ApplicationHome(getClass());
-            File jarF = h.getSource();
-            /* 配置文件路径 */
-            String classespath = jarF.getParentFile().toString()+"/files";
-
-            String decodeClassespath = URLDecoder.decode(classespath,"utf-8");
-            String fileDir = decodeClassespath+"/temp";
-            File dir = new File(fileDir);
-
-            //判断目录是否存在，不存在则创建目录
-            if (!dir.exists()){
-                dir.mkdirs();
+            // ========= 1. 基础校验 =========
+            if (file == null || file.isEmpty()) {
+                return Result.getResultJson(0, "文件不能为空", null);
             }
 
-            //生成新文件名，防止文件名重复而导致文件覆盖
-            //1、获取原文件后缀名 .img .jpg ....
             String originalFileName = file.getOriginalFilename();
-            //String suffix = originalFileName.substring(originalFileName.lastIndexOf('.'));
-            //应对图片剪裁后的无后缀图片
-            String suffix = "";
-            try{
-                suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
-            }catch (Exception e){
-                originalFileName = originalFileName +".png";
-                suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
+            if (originalFileName == null) {
+                originalFileName = "file.bin";
             }
-            //根据权限等级检查是否为图片
-            Integer uploadLevel = Integer.parseInt(apiconfig.get("uploadLevel").toString());;
-            if(uploadLevel.equals(0)){
-                //检查是否是图片
+            String suffix = "";
+            try {
+                suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
+            } catch (Exception e) {
+                suffix = ".png";
+            }
+            Integer uploadLevel = Integer.parseInt(apiconfig.get("uploadLevel").toString());
+            if (uploadLevel.equals(0)) {
                 BufferedImage bi = ImageIO.read(file.getInputStream());
-                if(bi == null&&!suffix.equals(".WEBP")&&!suffix.equals(".webp")){
-                    return Result.getResultJson(0,"当前只允许上传图片文件",null);
+                if (bi == null && !suffix.equalsIgnoreCase(".webp")) {
+                    return Result.getResultJson(0, "当前只允许上传图片文件", null);
                 }
             }
-            if(uploadLevel.equals(2)){
-                //检查是否是图片或视频
+            if (uploadLevel.equals(2)) {
                 BufferedImage bi = ImageIO.read(file.getInputStream());
                 Integer isVideo = baseFull.isVideo(suffix);
-                if(bi == null&&!suffix.equals(".WEBP")&&!suffix.equals(".webp")&&!isVideo.equals(1)){
-                    return Result.getResultJson(0,"请上传图片或者视频文件",null);
+                if (bi == null && !suffix.equalsIgnoreCase(".webp") && !isVideo.equals(1)) {
+                    return Result.getResultJson(0, "请上传图片或者视频文件", null);
                 }
             }
-            //2、使用UUID生成新文件名
-            String newFileName = UUID.randomUUID() + suffix;
-            //生成文件
-            File file1 = new File(dir, newFileName);
-            //传输内容
-            try {
-                try (InputStream in = file.getInputStream();
-                     FileOutputStream out = new FileOutputStream(file1)) {
+            String datePath = buildDatePath(); // 例如：2026/02/15
 
-                    byte[] buffer = new byte[8192];
-                    int len;
-                    while ((len = in.read(buffer)) != -1) {
-                        out.write(buffer, 0, len);
-                    }
-                }
-                System.out.println("上传文件成功！");
-            } catch (IOException e) {
-                System.out.println("上传文件失败！");
-                e.printStackTrace();
-            }
+            // FTP 基础目录，比如：/upload
+            String basePath = apiconfig.get("ftpBasePath").toString();
+            String fullDir = basePath + "/" + datePath;
 
-            //在服务器上生成新的目录
-            String key = apiconfig.get("ftpBasePath").toString()+"/"+file1.getName();
+            // ========= 4. 连接 FTP =========
+            ftpClient.setConnectTimeout(1000 * 30);
+            ftpClient.setControlEncoding("utf-8");
 
-            ftpClient.setConnectTimeout(1000 * 30);//设置连接超时时间
-            ftpClient.setControlEncoding("utf-8");//设置ftp字符集
-            //连接ftp服务器 参数填服务器的ip
             String ftpHost = apiconfig.get("ftpHost").toString();
             Integer ftpPort = Integer.parseInt(apiconfig.get("ftpPort").toString());
-            ftpClient.connect(ftpHost,ftpPort);
 
-            //进行登录 参数分别为账号 密码
-            ftpClient.login(apiconfig.get("ftpUsername").toString(),apiconfig.get("ftpPassword").toString());
-            //开启被动模式（按自己如何配置的ftp服务器来决定是否开启）
+            ftpClient.connect(ftpHost, ftpPort);
+            ftpClient.login(apiconfig.get("ftpUsername").toString(), apiconfig.get("ftpPassword").toString());
             ftpClient.enterLocalPassiveMode();
-            //只能选择local_root下已存在的目录
-            //ftpClient.changeWorkingDirectory(this.ftpBasePath);
-
-            // 文件夹不存在时新建
-            String remotePath = apiconfig.get("ftpBasePath").toString();
-            if (!ftpClient.changeWorkingDirectory(remotePath)) {
-                ftpClient.makeDirectory(remotePath);
-                ftpClient.changeWorkingDirectory(remotePath);
-            }
-            //设置文件类型为二进制文件
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-            //inputStream = file.getInputStream();
-            //上传文件 参数：上传后的文件名，输入流
-            ftpClient.storeFile(key, new FileInputStream(file1));
 
+            // ========= 5. 递归创建目录 =========
+            createDirectories(ftpClient, fullDir);
+
+            // ========= 6. 生成新文件名 =========
+            String newFileName = UUID.randomUUID().toString().replace("-", "") + suffix;
+
+            // 切换到目标目录
+            ftpClient.changeWorkingDirectory(fullDir);
+
+            // ========= 7. 直接上传流 =========
+            try (InputStream inputStream = file.getInputStream()) {
+                boolean done = ftpClient.storeFile(newFileName, inputStream);
+                if (!done) {
+                    throw new RuntimeException("FTP 上传失败");
+                }
+            }
+
+            ftpClient.logout();
             ftpClient.disconnect();
-            Map<String,String> info =new HashMap<String, String>();
-            info.put("url",apiconfig.get("webinfoUploadUrl").toString()+key);
-            editFile.setLog("用户"+uid+"通过ftpUpload成功上传了图片");
-            return Result.getResultJson(1,"上传成功",info);
+
+            // ========= 8. 拼接访问 URL =========
+            String visitUrl = apiconfig.get("webinfoUploadUrl").toString()
+                    + basePath + "/" + datePath + "/" + newFileName;
+
+            Map<String, String> info = new HashMap<>();
+            info.put("url", visitUrl);
+
+            editFile.setLog("用户" + uid + "通过ftpUpload成功上传了文件");
+            return Result.getResultJson(1, "上传成功", info);
 
         } catch (Exception e) {
             e.printStackTrace();
-            editFile.setLog("用户"+uid+"通过ftpUpload上传图片失败");
-            return Result.getResultJson(0,"上传失败",null);
+            try {
+                if (ftpClient.isConnected()) {
+                    ftpClient.disconnect();
+                }
+            } catch (IOException ignored) {}
+            editFile.setLog("用户" + uid + "通过ftpUpload上传文件失败");
+            return Result.getResultJson(0, "上传失败", null);
         }
     }
+    private String buildDatePath() {
+        LocalDate now = LocalDate.now();
+        return now.getYear() + "/" +
+                String.format("%02d", now.getMonthValue()) + "/" +
+                String.format("%02d", now.getDayOfMonth());
+    }
+    private void createDirectories(FTPClient ftpClient, String dirPath) throws IOException {
+        String[] dirs = dirPath.split("/");
+        String tempPath = "";
+        for (String dir : dirs) {
+            if (dir == null || dir.trim().isEmpty()) continue;
+            tempPath += "/" + dir;
+            if (!ftpClient.changeWorkingDirectory(tempPath)) {
+                ftpClient.makeDirectory(tempPath);
+            }
+        }
+    }
+
+
+
 
     public String s3Upload(MultipartFile file, String dataprefix, Map apiconfig, Integer uid) {
         String oldFileName = file.getOriginalFilename();

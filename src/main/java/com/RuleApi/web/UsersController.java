@@ -139,13 +139,16 @@ public class UsersController {
     public String userList(@RequestParam(value = "searchParams", required = false) String searchParams,
                            @RequestParam(value = "page", required = false, defaultValue = "1") Integer page,
                            @RequestParam(value = "searchKey", required = false, defaultValue = "") String searchKey,
-                           @RequestParam(value = "order", required = false, defaultValue = "") String order,
+                           @RequestParam(value = "order", required = false, defaultValue = "created") String order,
                            @RequestParam(value = "limit", required = false, defaultValue = "15") Integer limit,
                            @RequestParam(value = "token", required = false, defaultValue = "") String token) {
         TypechoUsers query = new TypechoUsers();
         String sqlParams = "null";
         if(limit>50){
             limit = 50;
+        }
+        if(!order.equals("birthday")&&!order.equals("experience")&&!order.equals("posttime")&&!order.equals("bantime")&&!order.equals("logged")&&!order.equals("activated")&&!order.equals("created")&&!order.equals("uid")){
+            order = "created";
         }
         //如果开启全局登录，则必须登录才能得到数据
         Integer uStatus = UStatus.getStatus(token,this.dataprefix,redisTemplate);
